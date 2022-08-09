@@ -1,0 +1,30 @@
+Loc	lon	lat	key	clave
+San José de la esquina	-61.711733	-33.13565	Sje	pop1
+Diamante	-60.63925	-32.109417	Dia	pop2
+Argentina	-62.26205	-29.538683	Arg	pop3
+3 esquinas	-65.155267	-31.20305	Sc	pop4
+El Rodeo	-63.864467	-30.177233	Rod	pop5
+Hock	-64.317433	-28.354983	K	pop6
+Sastre	-61.83655	-31.739067	Sas	pop7
+La Guardia	-65.4564	-29.5521	Lg	pop8
+Las Varillas	-62.71995	-31.857717	Var	pop9
+El Fortín	-62.328683	-31.964667	For	pop10
+Hipódromo de las Rosas	-65.748533	-28.55185	Ococ	pop11
+Yuquerí	-58.128633	-31.38195	Yuq	pop12
+Federal	-58.773267	-30.930583	Fed	pop13
+Pozo Escondido	-63.65225	-29.470883	Poz	pop14
+El 49	-63.9585	-29.0489	Cnue	pop15
+Huasampa	-65.563417	-27.913983	Hua	pop16
+Cruz del eje	-64.800167	-30.700084	C	pop17
+Ayui	-58.033555	-31.183535	Ayui	pop18
+El Carmen	-65.233608	-24.316879	Elc	pop19
+El Talar	-65.300165	-28.083341	Tal	pop20
+San Isidro	-65.100081	-32.133593	S	pop21
+Quilino	-64.466924	-30.216849	qui	pop22
+Ruta 9	-64.383481	-27.750008	R9	pop23
+Tucuman	-64.916862	-27.116741	T	pop24
+Icaño	-65.283599	-28.916943	ica	pop25
+Recreo	-65.066731	-29.266763	Rec	pop26
+La Banda	-64.200064	-27.733594	laba	pop27
+San Martin	-65.76675	-29.216733	SM	pop28
+
