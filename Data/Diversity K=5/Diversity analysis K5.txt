@@ -1,0 +1,73 @@
+##########################################################
+##Basic diversity analysis with K=5 defined by ADMIXTURE## 
+##########################################################
+
+##-----------------------------------------##
+##  Structure and diveristy basic analysis ##
+##-----------------------------------------##
+
+
+#Load packages in R:
+
+library(adegenet)
+library(hierfstat)
+library(fsthet)
+library(rgdal)
+library(vcfR)
+
+#Charge vcf file clean
+Cacto.vcf <- read.vcfR("Cacto_argen_limpio.recode.vcf")
+
+#Convert the vcf object to a genind object
+Cacto.ind<- vcfR2genind(Cacto.vcf)
+Cacto.ind
+
+#Add populations, charge the table with populations
+IndCacto_labels<-read.table("Argen_pop.txt", header=F)
+
+#Insert populations to the genind object
+pop(Cacto.ind) <- IndCacto_labels$V2
+
+#Convert genind object to hierfstat and genpop 
+Cacto.fstat <-genind2hierfstat(Cacto.ind)
+Cacto.genpop <-genind2genpop(Cacto.ind)
+
+#We obtain basic statistics 
+BasicSS <- basic.stats(Cacto.fstat)
+
+#Cacculate diversity of the complete sample
+BasicSS$overall
+
+#Now we calculate the mean heterozygosity, expected and observed
+#*Expected heterozygosity*
+Div_Raw.Hs <-as.data.frame(BasicSS$Hs)
+#*Observed heterozygosity*
+Div_Raw.Ho <-as.data.frame(BasicSS$Ho)
+
+#Make the heterozygosity graph (Ho and He)
+par(mfrow=c(1,2))
+barplot(colMeans(Div_Raw.Hs,na.rm=T),las=2,main="HE", col="plum3" ,border="plum4", xlab="Población", ylab="Frecuencia")
+barplot(colMeans(Div_Raw.Ho,na.rm=T),las=2,main="HO", col="lightcoral" ,border="salmon", xlab="Población", ylab="Frecuencia")
+
+
+##Obtain a table with heterozygosity by population
+#Heterocigosis esperada (Hs)
+Hs<-as.data.frame(colMeans(BasicSS$Hs, na.rm=TRUE))
+write.table(Hs,file="HS_table_argen",row.names=T, col.names=F, quote=F)
+#Heterocigosis observada (Ho)
+Ho<-as.data.frame(colMeans(BasicSS$Ho, na.rm=TRUE))
+write.table(Ho,file="HO_table_argen",row.names=T, col.names=F, quote=F)
+
+
+#Paired Fst (to find genetic diferentiation between populations)
+Cacto.fst <- pairwise.neifst(Cacto.fstat)
+library(corrplot)
+#NOTE.To correct negative values that come out by nonhomogeneous sample size, they are set to 0 as follows:
+Cacto.fst[Cacto.fst<0]<-0
+#na.label: to change the ? symbol for square in NA values
+#na.label.col: to change the text color or square color 
+#tl.col: labels color
+corrplot(as.matrix(Cacto.fst), is.corr=FALSE, type="lower", method="color", COL1(sequential="Purples"), na.abel="square", na.label.col="white", tl.col="black")
+title("Fst", line=0.7)
+
+

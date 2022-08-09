@@ -1,0 +1,35 @@
+##------------------------------------------##
+##               MANTEL TEST                ##
+##       Association between genetic        ##
+##       structure and geography            ##
+##------------------------------------------##
+
+# Make a euclidean distance matrix with function "dist".
+Cacto_dist_eu=dist(LocsCacto[,c(2,3)])
+
+#Make the genetic distance matrix. 
+Cacto.dist<-dist.genpop(Cacto.genpop)
+
+#Plot of genetic and euclidean distance.
+plot(Cacto_dist_eu, Cacto.dist)
+
+#Mantel test
+mantel.randtest(Cacto_dist_eu, Cacto.dist)
+
+##------------------------------------------##
+##               MANTEL TEST                ##
+##       Association between genetic        ##
+##   structure and environmental distance   ##
+##------------------------------------------##
+
+#Load standardized envinronmental variables
+Cacto_estand_amb<- read.table("Variables.txt", header=TRUE, sep="\t")
+
+#Make the environmental distance matrix.
+Cacto_dist_amb_estand<-dist(Cacto_estand_amb[,c(2:5)])
+
+#Plot the environmental and genetic distance
+plot(Cacto_dist_amb_estand, Cacto.dist, xlab="Distancia ambiental", ylab="Distancia genética", main="Relación genética-ambiente")
+
+#Mantel test
+mantel.randtest(Cacto_dist_amb_estand, Cacto.dist, nrepet=10000)

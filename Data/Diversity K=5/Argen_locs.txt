@@ -1,0 +1,30 @@
+Loc	lon	lat	key	clave
+San José de la esquina	-61.711733	-33.13565	Sje	pob1
+Diamante	-60.63925	-32.109417	Dia	pob1
+Argentina	-62.26205	-29.538683	Arg	pob1
+3 esquinas	-65.155267	-31.20305	Sc	pob2
+El Rodeo	-63.864467	-30.177233	Rod	pob2
+Hock	-64.317433	-28.354983	K	pob3
+Sastre	-61.83655	-31.739067	Sas	pob1
+La Guardia	-65.4564	-29.5521	Lg	pob5
+Las Varillas	-62.71995	-31.857717	Var	pob1
+El Fortín	-62.328683	-31.964667	For	pob1
+Hipódromo de las Rosas	-65.748533	-28.55185	Ococ	pob4
+Yuquerí	-58.128633	-31.38195	Yuq	pob1
+Federal	-58.773267	-30.930583	Fed	pob1
+Pozo Escondido	-63.65225	-29.470883	Poz	pob2
+El 49	-63.9585	-29.0489	Cnue	pob2
+Huasampa	-65.563417	-27.913983	Hua	pob3
+Cruz del eje	-64.800167	-30.700084	C	pob2
+Ayui	-58.033555	-31.183535	Ayui	pob1
+El Carmen	-65.233608	-24.316879	Elc	pob1
+El Talar	-65.300165	-28.083341	Tal	pob3
+San Isidro	-65.100081	-32.133593	S	pob2
+Quilino	-64.466924	-30.216849	qui	pob3
+Ruta 9	-64.383481	-27.750008	R9	pob3
+Tucuman	-64.916862	-27.116741	T	pob3
+Icaño	-65.283599	-28.916943	ica	pob5
+Recreo	-65.066731	-29.266763	Rec	pob5
+La Banda	-64.200064	-27.733594	laba	pob3
+San Martin	-65.76675	-29.216733	SM	pob4
+
