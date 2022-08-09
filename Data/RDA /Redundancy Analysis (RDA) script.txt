@@ -1,0 +1,216 @@
+#-------------------#
+#Redundancy Analysis#
+#-------------------#
+ 
+#RDA is a multivariate ordination technique that can be used to analyze many loci and 
+#environmental predictors simultaneously.
+#Here we describe step by step how to analyze the Cactoblastis cactorum data.
+    ▄   ▄   ──────────────
+    █▀█▀█  | We start here|
+    █▄█▄█ ══──────────────
+     ███  ▄▄
+     ████▐█ █
+     ████   █
+     ▀▀▀▀▀▀▀ 
+
+####################
+##Data preparation##
+####################
+
+#Convert vcf file to *.raw format. 
+plink --vcf Cacto_argen_limpio.recode.vcf --make-bed --allow-extra-chr --out Cacto_argen_ind
+plink --bfile Cacto_argen_ind --recode A --allow-extra-chr --out Cacto_R
+
+############
+##Analysis##
+############
+
+#Load packages in R
+library(psych) #Used to investigate correlations among predictors 
+library(vegan) #Used to run RDA 
+
+#Read the *.raw file
+Cacto.gen<-read.table("Cacto_R.raw", header=T, row.names=2)[,-(1:5)]
+Cacto.gen
+
+#Checking the missing data
+#RDA needs complete data frames (no missing data).
+sum(is.na(Cacto.gen))
+
+#Imputing missing values using the most common genotype at each SNP across all individuals
+Cacto.imp<- apply(Cacto.gen, 2, function(x) replace(x, is.na(x), as.numeric(names(which.max(table(x))))))
+sum(is.na(Cacto.imp))
+
+#Checking NAs again
+sum(is.na(Cacto.imp))
+
+#Read the environmental table and look at the structure of the data frame.
+env<- read.table("Ambiente.txt", header=TRUE, sep="\t")
+str(env)
+
+#Confirm that genotypes and environmental data are in the same order
+identical(rownames(Cacto.imp), env[,2])
+
+#Cheking correlated environmental variables 
+pairs.panels(env[,8:12], scale=T)
+#We rule out precipitation variable, it is highly correlated with soil pH of first five centimetres and Precipitation Seasonality (0.89 and 0.78)
+
+#Choose from our data "env" the environmental variables
+pred<- pred<- subset(env, select=c(Temp_med_anual, Rango_anual_temp, Estacionalidad_precip, Suelo_pH_05cm))
+
+###############
+##Run the RDA##
+###############
+
+
+Cacto.rda<-rda(Cacto.imp ~ ., data=pred, scale=T)
+Cacto.rda
+
+#The proportion of variance explained is equivalent to the R2 of a multiple regression and it will be biased. 
+#Therefore we should adjust it as follow:
+RsquareAdj(Cacto.rda)
+
+#The eigenvalues for constrained axes reflect the variance explained by each canonical axis
+#This way we can determine how many axes (RDAs) to include when we search for candidate SNPs 
+summary(eigenvals(Cacto.rda, model="constrained"))
+
+#Making a plot of eigenvalues
+screeplot(Cacto.rda)
+
+#Now we have to check the significance of our RDA model with anova.cca function
+#The numer of default permutations is 999, we used 10000.
+Cacto.sign<- anova.cca(Cacto.rda, parallel=getOption("mc.cores"), permutations=10000)
+Cacto.sign
+
+#Check the multicollinearity among predictors. If they are below 5 indicate that there is low multicollinearity, 
+#therefore it is not a problem for the model.
+vif.cca(Cacto.rda)
+
+###################################################################
+###Identification of candidate SNPs asociated to local adaptation##
+###################################################################
+
+#We have to use the loadings of the SNPs to find which are candidates.
+#We extracted the SNP loading from the first three significant axes (RDA1, RDA2, RDA3). 
+#They explain most of variance in the model.
+load.rda<- scores(Cacto.rda, choices=c(1:3), display="species")
+
+#Make histograms for each axis. 
+#NOTE: Only the loadings in the tails have more likely to be candidates asociated to environmental variables
+
+par(mfrow=c(1,3))
+hist(load.rda[,1], main="Loadings on RDA1", xlab="Load RDA1", col="azure3" ,border="azure4")
+hist(load.rda[,2], main="Loadings on RDA2", xlab="Load RDA2", col="bisque3" ,border="bisque4")
+hist(load.rda[,3], main="Loadings on RDA3", xlab="Load RDA3", col="aquamarine3" ,border="aquamarine4")
+
+#Now we have to make a function to find the outliers.
+#Documentation:
+#x is the vector of loadings (in this case is load.rda) 
+#z is the number of standar desviations to use (2.5, 3, 3.5, etc.)
+
+outliers<- function(x,z){ 
+lims<-mean(x) + c(-1,1) * z * sd(x)
+x[x < lims[1] | x > lims[2]] }
+
+#Apply the function "outliers" to each RDA axis (1 to 3 in this case), with 3 standar desviations
+#We can control the false positive and false negative rates with the number of standar desviations
+#Here we tried to keep an equilibrium between both with three standar desviations.
+
+candidatos1<- outliers(load.rda[,1],3)#RDA1, three standar desv.
+candidatos2<- outliers(load.rda[,2],3)#RDA2, three standar desv.
+candidatos3<- outliers(load.rda[,3],3)#RDA3, three standar desv.
+
+colnames(candidatos1)<- colnames(candidatos2)<-colnames(candidatos3)<- c("axis", "SNP", "loading")
+
+cand<- rbind(candidatos1, candidatos2, candidatos3)
+cand$SNP<- as.character(cand$SNP)
+
+#Add the correlation between each SNP and environmental predictors
+foo<- matrix(nrow=(ncand), ncol=5)
+colnames(foo)<- c("Temp_med_anual","Precip_anual",  "Intervalo_medio_diurno",
+"Isotermalidad", "Rango_anual_temp") 
+
+for(i in 1:length(cand$SNP)) {
+nam<- cand[i,2]
+snp.gen<- Cacto.imp[, nam]
+foo[i,]<- apply(pred, 2, function(x) cor(x, snp.gen))}
+
+cand<- cbind.data.frame(cand, foo)
+head(cand)
+
+#Search for repited outliers
+length(cand$SNP[duplicated(cand$SNP)])
+
+#Define which variable is associated with each SNP
+for(i in 1:length(cand$SNP)){
+bar<-cand[i,]
+cand[i,9]<- names(which.max(abs(bar[4:8])))
+cand[i,10]<-max(abs(bar[4:8]))}
+
+colnames(cand)[9]<- "predictor"
+colnames(cand)[10]<- "correlation"
+table(cand$predictor)
+
+table(cand$predictor)
+
+
+#Now a plot of candidates SNPs 
+#The color of the SNPs (circles) are based on the environmental variable 
+#that they are most strongly correlated with.
+
+sel<- cand$SNP
+env1<-cand$predictor
+env1[env1=="Suelo_pH_05cm"]<- '#FFD700' #yellow
+env1[env1=="Estacionalidad_precip"]<- '#FF1493' #pink
+env1[env1=="Temp_med_anual"]<- '#1C86EE' #blue
+env1[env1=="Rango_anual_temp"]<- '#00CD00' #green
+
+
+#To color by environmental predictor
+col.pred<-rownames(Cacto.rda$CCA$v)
+
+for(i in 1:length(sel)){
+foo<-match(sel[i], col.pred)
+col.pred[foo]<- env1[i]}
+
+col.pred[grep("loc", col.pred)]<- '#f1eef6'
+empty<-col.pred
+empty[grep('#f1eef6', empty)]<- rgb(0,1,0, alpha=0)
+empty.outline<-ifelse(empty=="#00FF0000", "#00FF0000", "gray32")
+bg<- c('#FFD700', '#FF1493' , '#1C86EE', '#00CD00')
+
+
+#Plots of SNPs 
+
+#Axis 1 and 2
+plot(Cacto.rda, type="n", scaling=3)
+points(Cacto.rda, display="species", pch=21, cex=1, col="gray32", bg=col.pred, scaling=3)
+points(Cacto.rda, display="species", pch=21, cex=1, col=empty.outline, bg=empty, scaling=3)
+text(Cacto.rda, scaling=3, display="bp", col="#68228B", cex=1)
+legend(x="topleft", inset=c(-0.1,0), legend=c("pH del suelo, primeros 0-5cm", "Estacionalidad de la precipitación", "Temperatura media anual", "Rango anual de temperatura"), 
+bty="n", col="gray32", pch=21, cex=1, pt.bg=bg, ncol=1)
+
+
+#Axis 2 and 3
+plot(Cacto.rda, type="n", scaling=3, choices=c(1,3))
+points(Cacto.rda, display="species", pch=21, cex=1, col="gray32", bg=col.pred, scaling=3, choices=c(1,3))
+points(Cacto.rda, display="species", pch=21, cex=1, col=empty.outline, bg=empty, scaling=3, choices=c(1,3))
+text(Cacto.rda, scaling=3, display="bp", col="#68228B", cex=1, choices=c(1,3))
+legend(x="topleft", inset=c(-0.1,0), legend=c("pH del suelo, primeros 0-5cm", "Estacionalidad de la precipitación", "Temperatura media anual", "Rango anual de temperatura"), pt.cex=1.5, 
+bty="n", col="gray32", pch=21, cex=1, pt.bg=bg, ncol=1)
+
+#Create a file with a table of candidate SNPs
+write.table(cand,file="Candidatos_RDA",row.names=T, col.names=T, quote=F)
+
+
+    ▄   ▄   ─────────────
+    █▀█▀█  | We finished!|
+    █▄█▄█ ══─────────────
+     ███  ▄▄
+     ████▐█ █
+     ████   █
+     ▀▀▀▀▀▀▀ 
+
+
+
+
