@@ -19,7 +19,6 @@ We obtained 7,552 SNPs with 224 individuals.
 * We make a RDA to find candidate SNPs possibly associated to environmental variables -> See Redundancy Analysis (RDA) script.txt file.
 * We make a LFMM test to find candidate SNPs associated to environment variables and support the RDA analysis.
 
-NOTE: The important variables to *Cactoblastis cactorum* establishment are: Annual Mean Temperature, 
-Annual Precipitation, Temperature Annual Range, Precipitation Seasonality and soil pH of first five centimetres (N. Castillo, personal communication, March 7, 2022).
+NOTE: The important variables to *Cactoblastis cactorum* establishment are: Annual Mean Temperature,  Annual Precipitation, Temperature Annual Range, Precipitation Seasonality and soil pH of first five centimetres (N. Castillo, personal communication, March 7, 2022).
 
 * Environmental variables values were obtained with WorldClim (worldclim.org/data/bioclim.html) and SoilGrids (soildgrids.org).
