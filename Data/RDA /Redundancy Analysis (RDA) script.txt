@@ -44,7 +44,7 @@ sum(is.na(Cacto.imp))
 #Checking NAs again
 sum(is.na(Cacto.imp))
 
-#Read the environmental table and look at the structure of the data frame.
+#Read the environmental table 
 env<- read.table("Ambiente.txt", header=TRUE, sep="\t")
 str(env)
 
