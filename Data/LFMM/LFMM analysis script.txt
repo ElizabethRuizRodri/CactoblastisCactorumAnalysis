@@ -1,0 +1,193 @@
+#---------------------------#
+# Latent Factor Mixed Model #
+#      LFMM analysis        #
+#---------------------------#
+ 
+    ▄   ▄   ──────────────
+    █▀█▀█  | We start here|
+    █▄█▄█ ══──────────────
+     ███  ▄▄
+     ████▐█ █
+     ████   █
+     ▀▀▀▀▀▀▀ 
+
+####################
+##Data preparation##
+####################
+
+#Load packages in R
+library(LEA)
+
+#Convert vcf file to *.geno format. 
+Cacto.geno<-vcf2geno("Cacto_argen_limpio.recode.vcf")
+
+#Computing the scores of a PCA for a genotypic matrix
+Cacto_lea_pca <-pca(Cacto.geno, scale = TRUE)
+
+#Make a Tracy-Widom test to find the number of significants components
+Cacto_tw<-tracy.widom(Cacto_lea_pca)
+
+#Plot of variance explained by each component
+plot(Cacto_tw$percentage)
+
+#Find the number of K (genetic clusters)
+Cacto_project = NULLproject = snmf(Cacto.geno,K = 1:15,entropy = TRUE,repetitions = 15,project = "new")
+
+#Plot (Ks). We can see an "elbow" where the value of K is the most likely
+plot(Cacto_project, col = "gold", pch = 19, cex = 1.2)
+
+#Making a barplot with the most likely K (Like in ADMIXTURE). This time the minimum K is eight but the most likely was 10.
+#K=8
+Cluster8 = which.min(cross.entropy(Cacto_project, K = 8))
+colores8 <- c("maroon","purple","gold","deepskyblue","lightcoral","slateblue", "violet", "blue")
+barchart(Cacto_project, K = 8, run = Cluster8,border = NA, space = 0,col = colores8,xlab = "Individuals",ylab = "Ancestry proportions",main = "Ancestry matrix") -> bp
+axis(1, at = 1:length(bp$order),labels = bp$order, las=2,cex.axis = .2)
+
+#K=10
+Cluster10 = which.min(cross.entropy(Cacto_project, K = 10))
+colores10 <- c("maroon","purple","gold","deepskyblue","lightcoral","slateblue", "violet", "blue", "green", "red")
+barchart(Cacto_project, K = 10, run = Cluster10,border = NA, space = 0,col = colores10,xlab = "Individuals",ylab = "Ancestry proportions",main = "Ancestry matrix") -> bp
+axis(1, at = 1:length(bp$order),labels = bp$order, las=2,cex.axis = .2)
+
+#In order to choose the best K value, we did a population differentation text.
+#This time we used K=7,8,9,10 and 11
+#We cand find the most likely K when a histogram is flat with a peak close to zero
+
+#K=7
+p_LEA7<-snmf.pvalues(Cacto_project,entropy = TRUE,ploidy = 2,K = 7)
+pvalues_LEA7<-p_LEA7$pvalues
+##Graficamos los pvalues
+par(mfrow = c(2,1))
+hist(pvalues_LEA7, col = "lightslateblue")
+plot(-log10(pvalues_LEA7), pch = 19, col = "mediumorchid3", cex = .5)
+
+#K=8
+p_LEA8<-snmf.pvalues(Cacto_project,entropy = TRUE,ploidy = 2,K = 8)
+pvalues_LEA8<-p_LEA8$pvalues
+##Graficamos los pvalues
+par(mfrow = c(2,1))
+hist(pvalues_LEA8, col = "lightslateblue")
+plot(-log10(pvalues_LEA8), pch = 19, col = "mediumorchid3", cex = .5)
+
+#K=9
+p_LEA9<-snmf.pvalues(Cacto_project,entropy = TRUE,ploidy = 2,K = 9)
+pvalues_LEA9<-p_LEA9$pvalues
+##Graficamos los pvalues
+par(mfrow = c(2,1))
+hist(pvalues_LEA9, col = "lightslateblue")
+plot(-log10(pvalues_LEA9), pch = 19, col = "mediumorchid3", cex = .5, main="K=9")
+
+#K=10
+p_LEA10<-snmf.pvalues(Cacto_project,entropy = TRUE,ploidy = 2,K = 10)
+pvalues_LEA10<-p_LEA10$pvalues
+##Graficamos los pvalues
+par(mfrow = c(2,1))
+hist(pvalues_LEA10, col = "lightslateblue")
+plot(-log10(pvalues_LEA10), pch = 19, col = "mediumorchid3", cex = .5)
+
+#K=11
+p_LEA11<-snmf.pvalues(Cacto_project,entropy = TRUE,ploidy = 2,K = 11)
+pvalues_LEA11<-p_LEA11$pvalues
+##Graficamos los pvalues
+par(mfrow = c(2,1))
+hist(pvalues_LEA11, col = "lightslateblue")
+plot(-log10(pvalues_LEA11), pch = 19, col = "mediumorchid3", cex = .5)
+
+#K=10 was the best k value
+
+#Replace the missing data (important to run the LFMM analysis)
+impute(Cacto_project, "Cacto_argen_limpio.recode.geno",method = 'mode', K = 10, run = Cluster10)
+
+#Read the table of standardized environmental variables
+Variables_LEA<-read.table("Variables.txt", header=FALSE)
+write.env(Variables_LEA, "Gradientes.env")
+
+##################
+## Run the LFMM ##
+##################
+#The numer of latent factor (K) this time is 10, it was the most likely K value.
+#We use a seed=200. It can be any number, but you have to use the same in each repetition. 
+Cacto_latentes10<-lfmm("Cacto_argen_limpio.recode.lfmm_imputed.lfmm","Gradientes.env",K = 10,all=TRUE, iterations=8000, burnin=4000,seed= 200,repetitions = 5,project = "new")
+
+#Obtain the pvalues for Annual Mean Temperature (variable 1)
+p_temp<-lfmm.pvalues(Cacto_latentes10, K = 10, d=1)
+pvalues_temp = p_temp$pvalues
+
+for (alpha in c(.05,.1)){
+print(paste("Expected FDR:", alpha))
+L = length(pvalues_temp)
+w = which(sort(pvalues_temp) < alpha * (1:L) / L)
+candidatos_temp = order(pvalues_temp)[w] 
+Lc = length(candidatos_temp)
+estimated.FDR = sum(candidatos_temp <= 350)/Lc
+print(paste("Observed FDR:",round(estimated.FDR, digits = 2)))
+par(mfrow = c(2,1))
+hist(pvalues_temp, col = "gold3", main="Histograma de pvalues de temperatura anual")
+plot(-log10(pvalues_temp), pch = 19, col = "gold4", cex = .7)
+estimated.TPR = sum(candidatos_temp > 350)/50
+print(paste("Estimated TPR:",round(estimated.TPR, digits = 2)))}
+
+
+#Obtain the pvalues for Temperature Annual Range (variable 2)
+p_rango<-lfmm.pvalues(Cacto_latentes10, K = 10, d=2)
+pvalues_rango = p_rango$pvalues
+
+for (alpha in c(.05,.1)){
+print(paste("Expected FDR:", alpha))
+L = length(pvalues_rango)
+w = which(sort(pvalues_rango) < alpha * (1:L) / L)
+candidatos_rango = order(pvalues_rango)[w] 
+Lc = length(candidatos_rango)
+estimated.FDR = sum(candidatos_rango <= 350)/Lc
+print(paste("Observed FDR:",round(estimated.FDR, digits = 2)))
+par(mfrow = c(2,1))
+hist(pvalues_rango, col = "tomato2", main="Histograma de pvalues del rango anual de temperatura")
+plot(-log10(pvalues_rango), pch = 19, col = "tomato3", cex = .7)
+estimated.TPR = sum(candidatos_rango > 350)/50
+print(paste("Estimated TPR:",round(estimated.TPR, digits = 2)))}
+
+#Obtain the pvalues for Precipitation Seasonality (variable 3)
+p_estacio<-lfmm.pvalues(Cacto_latentes10, K = 10, d=3)
+pvalues_estacio = p_estacio$pvalues
+
+for (alpha in c(.05,.1)){
+print(paste("Expected FDR:", alpha))
+L = length(pvalues_estacio)
+w = which(sort(pvalues_estacio) < alpha * (1:L) / L)
+candidatos_estacio = order(pvalues_estacio)[w] 
+Lc = length(candidatos_estacio)
+estimated.FDR = sum(candidatos_estacio <= 350)/Lc
+print(paste("Observed FDR:",round(estimated.FDR, digits = 2)))
+par(mfrow = c(2,1))
+hist(pvalues_estacio, col = "royalblue2", main="Histograma de pvalues de la estacionalidad de precipitaciones")
+plot(-log10(pvalues_estacio), pch = 19, col = "royalblue3", cex = .7)
+estimated.TPR = sum(candidatos_estacio > 350)/50
+print(paste("Estimated TPR:",round(estimated.TPR, digits = 2)))}
+
+#Obtain the pvalues for soil pH of first five centimetres (variable 4)
+p_suelo<-lfmm.pvalues(Cacto_latentes10, K = 10, d=4)
+pvalues_suelo = p_suelo$pvalues
+
+for (alpha in c(.05,.1)){
+print(paste("Expected FDR:", alpha))
+L = length(pvalues_suelo)
+w = which(sort(pvalues_suelo) < alpha * (1:L) / L)
+candidatos_suelo = order(pvalues_suelo)[w] 
+Lc = length(candidatos_suelo)
+estimated.FDR = sum(candidatos_suelo <= 350)/Lc
+print(paste("Observed FDR:",round(estimated.FDR, digits = 2)))
+par(mfrow = c(2,1))
+hist(pvalues_suelo, col = "plum3", main="Histograma de pvalues del pH del suelo, primeros 5 cm")
+plot(-log10(pvalues_suelo), pch = 19, col = "plum4", cex = .7)
+estimated.TPR = sum(candidatos_suelo > 350)/50
+print(paste("Estimated TPR:",round(estimated.TPR, digits = 2)))}
+
+#Get the total number of candidates.
+Candidatos_totales<- length(candidatos_temp)+ length(candidatos_rango)+length(candidatos_estacio)+ length(candidatos_suelo)
+#The number in the list is the number of SNP, not position
+write.table(tcandid_temp,file="Candidatos_temp",row.names=F, col.names=F, quote=F)
+write.table(tcandid_rango,file="Candidatos_rango",row.names=F, col.names=F, quote=F)
+write.table(tcandid_estacio,file="Candidatos_estacio",row.names=F, col.names=F, quote=F)
+write.table(tcandid_suelo,file="Candidatos_suelo",row.names=F, col.names=F, quote=F)
+
+
